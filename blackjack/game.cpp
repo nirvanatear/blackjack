@@ -14,6 +14,10 @@ ostream& operator<< (ostream& out, const vector<T>& v) {
 	return out;
 }
 
+bool card_in_hand(vector<int> hand, int card){
+	return (std::find(hand.begin(), hand.end(), card) != hand.end());
+}
+
 std::map<int, int> init_prob_table(int NUM_DECK){
 	std::map<int, int> table;
 	
@@ -47,9 +51,17 @@ double score_hand_stand(vector<int> player_cards, vector<int> dealer_cards, std:
 		float card_prob = (double)prob_table[card] / (double)prob_table[0];
 		cout << "dealt" << dealer_cards << "card" << card << "prob" << card_prob << '\n';
 		if (dealer_sum + card > 21) {
-			total_score += card_prob;
+			if ((card_in_hand(dealer_cards, 11) | (card==11) ) & !card_in_hand(dealer_cards,1)) {
+				vector<int> new_dealer_cards = dealer_cards; new_dealer_cards.push_back(card);
+				new_dealer_cards[std::find(new_dealer_cards.begin(), new_dealer_cards.end(), 11)-new_dealer_cards.begin()] = 1;
+				std::map<int, int> new_prob_table = update_prob_table(prob_table, card);
+				total_score += card_prob * score_hand_stand(player_cards, new_dealer_cards, new_prob_table);
+			}
+			else {
+				total_score += card_prob;
+			}
 		}
-		else if (dealer_sum + card >= 17) {
+		else if (dealer_sum + card >= 17) {//17 with an ace will stand
 			if (dealer_sum + card > player_sum) {
 				total_score += -card_prob;
 			}
@@ -63,7 +75,7 @@ double score_hand_stand(vector<int> player_cards, vector<int> dealer_cards, std:
 		else if (dealer_sum + card > player_sum) {
 			total_score += -card_prob;
 		}
-		else {
+		else {//keep drawing
 			vector<int> new_dealer_cards = dealer_cards; new_dealer_cards.push_back(card);
 			std::map<int, int> new_prob_table = update_prob_table(prob_table, card);
 			total_score += card_prob * score_hand_stand(player_cards, new_dealer_cards, new_prob_table);
